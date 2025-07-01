@@ -18,13 +18,21 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const { role, email, password } = req.body;
+        const { role, email, password, fullName } = req.body;
 
         // Validate password
         if (!password || password.length < 8) {
             return res.status(400).json({
                 success: false,
                 message: 'Password must be at least 8 characters long'
+            });
+        }
+
+        // Validate fullName
+        if (!fullName || fullName.trim().length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Full Name is required.'
             });
         }
 
@@ -46,6 +54,7 @@ const registerUser = async (req, res) => {
             role,
             email: email.toLowerCase(),
             password: hashedPassword,
+            fullName: fullName.trim(),
             status: 'pending',
             assignedTeacher: null,
             classNumber: null

@@ -44,6 +44,11 @@ const userSchema = new mongoose.Schema({
     classNumber: {
         type: String
     },
+    fullName: {
+        type: String,
+        required: true,
+        trim: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
