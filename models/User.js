@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         required: true,
-        enum: ['student', 'teacher'],
+        enum: ['student', 'teacher', 'director', 'global_admin'],
         default: 'student'
     },
     email: {
@@ -39,12 +39,10 @@ const userSchema = new mongoose.Schema({
     // Role-based assignment fields
     assignedTeacher: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: function() { return this.role === 'student'; }
+        ref: 'User'
     },
     classNumber: {
-        type: String,
-        required: function() { return this.role === 'student'; }
+        type: String
     },
     createdAt: {
         type: Date,
@@ -77,6 +75,24 @@ userSchema.methods.clearApprovalToken = function() {
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Custom validation for student-specific fields - only required when status is approved
+userSchema.pre('save', function(next) {
+    // Only validate assignedTeacher and classNumber for students who are approved
+    if (this.role === 'student' && this.status === 'approved') {
+        if (!this.assignedTeacher) {
+            const error = new Error('assignedTeacher is required for approved students');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+        if (!this.classNumber) {
+            const error = new Error('classNumber is required for approved students');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+    }
+    next();
+});
 
 // Index for faster queries (removed email index since unique: true already creates it)
 userSchema.index({ role: 1 });

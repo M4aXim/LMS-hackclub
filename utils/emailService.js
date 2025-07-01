@@ -139,7 +139,7 @@ const notifyGlobalAdmins = async (userData) => {
         const User = require('../models/User');
         const globalAdmins = await User.find({ 
             role: 'global_admin', 
-            status: 'active' 
+            status: 'approved' 
         }).select('email');
 
         if (globalAdmins.length === 0) {

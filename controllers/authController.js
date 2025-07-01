@@ -18,7 +18,7 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const { role, email, password, assignedTeacher, classNumber } = req.body;
+        const { role, email, password } = req.body;
 
         // Validate password
         if (!password || password.length < 8) {
@@ -47,8 +47,8 @@ const registerUser = async (req, res) => {
             email: email.toLowerCase(),
             password: hashedPassword,
             status: 'pending',
-            assignedTeacher: role === 'student' ? assignedTeacher : undefined,
-            classNumber: role === 'student' ? classNumber : undefined
+            assignedTeacher: null,
+            classNumber: null
         });
 
         // Generate approval token
@@ -89,8 +89,7 @@ const getUserByApprovalToken = async (req, res) => {
 
         const user = await User.findOne({ 
             approvalToken: token,
-            tokenExpiresAt: { $gt: new Date() },
-            status: 'pending'
+            tokenExpiresAt: { $gt: new Date() }
         });
 
         if (!user) {
@@ -108,6 +107,7 @@ const getUserByApprovalToken = async (req, res) => {
                 role: user.role,
                 status: user.status,
                 createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
                 token: user.approvalToken
             }
         });
