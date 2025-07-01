@@ -183,7 +183,12 @@
                     body: JSON.stringify({ email, password })
                 });
                 const result = await response.json();
+                console.log('Login response:', result);
                 if (result.success) {
+                    console.log('Storing token:', result.token);
+                    localStorage.setItem('authToken', result.token);
+                    // Optionally, store user info if needed
+                    // localStorage.setItem('userId', result.data.id); // Remove this if not needed
                     successMessage.textContent = 'Login successful! Redirecting...';
                     successMessage.style.display = 'block';
                     setTimeout(() => {

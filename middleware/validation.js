@@ -1,4 +1,6 @@
 const { body } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'changeme_secret';
 
 // Validation rules for user registration
 const registerValidation = [
@@ -38,7 +40,47 @@ const loginValidation = [
         .withMessage('Password is required')
 ];
 
+// Validation for leave request
+const leaveRequestValidation = [
+    body('leaveType')
+        .isIn(['sick', 'personal', 'emergency', 'vacation', 'other'])
+        .withMessage('Invalid leave type'),
+    body('startDate')
+        .isISO8601()
+        .withMessage('Start date must be a valid date'),
+    body('endDate')
+        .isISO8601()
+        .withMessage('End date must be a valid date'),
+    body('duration')
+        .isIn(['half-day', 'full-day', 'multiple-days'])
+        .withMessage('Invalid duration type'),
+    body('reason')
+        .isLength({ min: 10, max: 1000 })
+        .withMessage('Reason must be between 10 and 1000 characters'),
+    body('additionalInfo')
+        .optional()
+        .isLength({ max: 500 })
+        .withMessage('Additional info must be less than 500 characters')
+];
+
+function authenticateJWT(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+}
+
 module.exports = {
     registerValidation,
-    loginValidation
+    loginValidation,
+    leaveRequestValidation,
+    authenticateJWT
 }; 

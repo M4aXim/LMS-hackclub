@@ -9,6 +9,7 @@ const connectDB = require('./config/database');
 // Import routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const leaveRoutes = require('./routes/leave');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,7 @@ app.get('/api', (req, res) => {
 // API Routes (moved to /api/v1 to avoid conflict with redirect)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/leave', leaveRoutes);
 
 // Serve frontend pages
 app.get('/', (req, res) => {

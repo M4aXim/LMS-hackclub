@@ -2,6 +2,12 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const { notifyGlobalAdmins } = require('../utils/emailService');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'changeme_secret';
+
+function signToken(user) {
+    return jwt.sign({ id: user._id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+}
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -67,9 +73,11 @@ const registerUser = async (req, res) => {
         // Notify global admins with approval link
         await notifyGlobalAdmins({ ...user.toObject(), approvalToken });
 
+        const token = signToken(user);
         res.status(201).json({
             success: true,
             message: 'User registered successfully. Pending approval.',
+            token,
             data: {
                 id: user._id,
                 role: user.role,
@@ -174,18 +182,16 @@ const loginUser = async (req, res) => {
             });
         }
 
-        // Generate JWT token (you'll need to implement this)
-        // const token = generateJWT(user);
-
+        const token = signToken(user);
         res.json({
             success: true,
             message: 'Login successful',
+            token,
             data: {
                 id: user._id,
                 email: user.email,
                 role: user.role,
                 status: user.status
-                // token: token
             }
         });
 
@@ -199,8 +205,49 @@ const loginUser = async (req, res) => {
     }
 };
 
+// @desc    Get current user info
+// @route   GET /api/auth/me
+// @access  Private
+const getCurrentUser = async (req, res) => {
+    try {
+        // This would typically use JWT middleware to get user from token
+        // For now, we'll get user ID from request (you'll need to add JWT middleware)
+        const userId = req.user?.id || req.headers['user-id'];
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+
+        const user = await User.findById(userId).select('-password -approvalToken -tokenExpiresAt');
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: user
+        });
+
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
 module.exports = {
     registerUser,
     getUserByApprovalToken,
-    loginUser
+    loginUser,
+    getCurrentUser
 }; 
