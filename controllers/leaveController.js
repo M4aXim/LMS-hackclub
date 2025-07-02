@@ -133,18 +133,18 @@ const getMyLeaveRequests = async (req, res) => {
 };
 
 // @desc    Submit leave request for supervisor approval
-// @route   POST /api/v1/:fullName/:date/:token
+// @route   GET /api/v1/:fullName/:date/:token
 // @access  Public
 const submitLeaveForApproval = async (req, res) => {
     try {
         const { fullName, date, token } = req.params;
-        const { leaveType, startDate, endDate, duration, reason, additionalInfo, supervisorEmail } = req.body;
+        const { leaveType, startDate, endDate, duration, reason, additionalInfo, supervisorEmail } = req.query;
 
         // Validate required fields
         if (!leaveType || !startDate || !endDate || !duration || !reason || !supervisorEmail) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: leaveType, startDate, endDate, duration, reason, supervisorEmail'
+                message: 'Missing required query parameters: leaveType, startDate, endDate, duration, reason, supervisorEmail'
             });
         }
 
@@ -190,7 +190,7 @@ const submitLeaveForApproval = async (req, res) => {
         await leaveRequest.save();
 
         // Send email to supervisor
-        const approvalLink = `${process.env.BASE_URL || 'http://localhost:3000'}/api/v1/approve/${approvalToken}`;
+        const approvalLink = `${process.env.BASE_URL || 'http://localhost:3000'}/approve-leave/${approvalToken}`;
         
         const emailResult = await sendEmail(supervisorEmail, 'leaveApproval', {
             fullName,
@@ -233,8 +233,160 @@ const submitLeaveForApproval = async (req, res) => {
     }
 };
 
+// @desc    Approve or reject leave request by supervisor
+// @route   GET /api/v1/approve/:token
+// @access  Public
+const approveLeaveRequest = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { action, rejectionReason, supervisorName } = req.body;
+
+        // Find leave request by approval token
+        const leaveRequest = await Leave.findOne({ 
+            approvalToken: token,
+            status: 'pending_approval',
+            approvalExpiry: { $gt: new Date() }
+        });
+
+        if (!leaveRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Leave request not found or token expired'
+            });
+        }
+
+        if (action === 'approve') {
+            // Update leave request status to approved
+            leaveRequest.status = 'approved';
+            leaveRequest.approvedAt = new Date();
+            leaveRequest.approvedBy = supervisorName || 'Supervisor';
+            
+            // Clear approval token and expiry
+            leaveRequest.approvalToken = null;
+            leaveRequest.approvalExpiry = null;
+
+            await leaveRequest.save();
+
+            // Send approval notification email to employee (if email is available)
+            if (leaveRequest.supervisorEmail) {
+                await sendEmail(leaveRequest.supervisorEmail, 'leaveApproved', {
+                    fullName: leaveRequest.fullName,
+                    leaveType: leaveRequest.leaveType,
+                    startDate: leaveRequest.startDate.toLocaleDateString(),
+                    endDate: leaveRequest.endDate.toLocaleDateString(),
+                    approvedBy: supervisorName || 'Supervisor',
+                    approvedAt: new Date().toLocaleString()
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Leave request approved successfully',
+                data: {
+                    id: leaveRequest._id,
+                    fullName: leaveRequest.fullName,
+                    status: leaveRequest.status,
+                    approvedBy: leaveRequest.approvedBy,
+                    approvedAt: leaveRequest.approvedAt
+                }
+            });
+
+        } else if (action === 'reject') {
+            // Update leave request status to rejected
+            leaveRequest.status = 'rejected';
+            leaveRequest.rejectionReason = rejectionReason || 'No reason provided';
+            leaveRequest.approvedAt = new Date();
+            leaveRequest.approvedBy = supervisorName || 'Supervisor';
+            
+            // Clear approval token and expiry
+            leaveRequest.approvalToken = null;
+            leaveRequest.approvalExpiry = null;
+
+            await leaveRequest.save();
+
+            // Send rejection notification email to employee (if email is available)
+            if (leaveRequest.supervisorEmail) {
+                await sendEmail(leaveRequest.supervisorEmail, 'leaveRejected', {
+                    fullName: leaveRequest.fullName,
+                    leaveType: leaveRequest.leaveType,
+                    startDate: leaveRequest.startDate.toLocaleDateString(),
+                    endDate: leaveRequest.endDate.toLocaleDateString(),
+                    rejectedBy: supervisorName || 'Supervisor',
+                    rejectedAt: new Date().toLocaleString(),
+                    reason: rejectionReason || 'No reason provided'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Leave request rejected successfully',
+                data: {
+                    id: leaveRequest._id,
+                    fullName: leaveRequest.fullName,
+                    status: leaveRequest.status,
+                    rejectedBy: leaveRequest.approvedBy,
+                    rejectedAt: leaveRequest.approvedAt,
+                    rejectionReason: leaveRequest.rejectionReason
+                }
+            });
+
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid action. Must be "approve" or "reject"'
+            });
+        }
+
+    } catch (error) {
+        console.error('Error approving/rejecting leave request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while processing leave request',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
+// @desc    Get leave request details by token
+// @route   GET /api/v1/leave/details/:token
+// @access  Public
+const getLeaveRequestDetails = async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        // Find leave request by approval token
+        const leaveRequest = await Leave.findOne({ 
+            approvalToken: token,
+            status: 'pending_approval',
+            approvalExpiry: { $gt: new Date() }
+        });
+
+        if (!leaveRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Leave request not found or token expired'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: leaveRequest
+        });
+
+    } catch (error) {
+        console.error('Error fetching leave request details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching leave request details',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
 module.exports = {
     submitLeaveRequest,
     getMyLeaveRequests,
-    submitLeaveForApproval
+    submitLeaveForApproval,
+    approveLeaveRequest,
+    getLeaveRequestDetails
 }; 

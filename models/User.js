@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    assignedDirector: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     classNumber: {
         type: String
     },
@@ -96,6 +100,16 @@ userSchema.pre('save', function(next) {
             return next(error);
         }
     }
+    
+    // Validate assignedDirector for teachers who are approved
+    if (this.role === 'teacher' && this.status === 'approved') {
+        if (!this.assignedDirector) {
+            const error = new Error('assignedDirector is required for approved teachers');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+    }
+    
     next();
 });
 
@@ -103,5 +117,6 @@ userSchema.pre('save', function(next) {
 userSchema.index({ role: 1 });
 userSchema.index({ status: 1 });
 userSchema.index({ assignedTeacher: 1 });
+userSchema.index({ assignedDirector: 1 });
 
 module.exports = mongoose.model('User', userSchema, 'users'); 

@@ -78,9 +78,25 @@ function authenticateJWT(req, res, next) {
     }
 }
 
+function requireGlobalAdmin(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    
+    if (req.user.role !== 'global_admin') {
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Access denied. Global admin privileges required.' 
+        });
+    }
+    
+    next();
+}
+
 module.exports = {
     registerValidation,
     loginValidation,
     leaveRequestValidation,
-    authenticateJWT
+    authenticateJWT,
+    requireGlobalAdmin
 }; 

@@ -50,6 +50,16 @@ app.get('/approve/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'approve.html'));
 });
 
+// Serve leave approval page
+app.get('/approve-leave/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'approve-leave.html'));
+});
+
+// Serve test leave submission page
+app.get('/test-leave', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test-leave-submission.html'));
+});
+
 // Serve TOS.html
 app.get('/tos', (req, res) => {
     res.sendFile(path.join(__dirname, 'TOS.html'));
