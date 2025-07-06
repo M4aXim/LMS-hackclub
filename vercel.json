@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/register",
+      "dest": "/register.html"
+    },
+    {
+      "src": "/approve/(.*)",
+      "dest": "/approve.html"
+    },
+    {
+      "src": "/approve-leave/(.*)",
+      "dest": "/approve-leave.html"
+    },
+    {
+      "src": "/test-leave",
+      "dest": "/test-leave-submission.html"
+    },
+    {
+      "src": "/tos",
+      "dest": "/TOS.html"
+    },
+    {
+      "src": "/privacy",
+      "dest": "/privacy.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
+}
