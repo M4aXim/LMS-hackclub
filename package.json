@@ -1,22 +1,18 @@
 {
   "name": "lms-leave-management-system",
   "version": "1.0.0",
-  "description": "Leave Management System for educational institutions - Serverless",
+  "description": "Leave Management System for educational institutions",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "echo 'Build complete'",
-    "vercel-build": "echo 'Vercel build complete'"
+    "dev": "nodemon index.js"
   },
   "keywords": [
     "lms",
     "leave-management",
     "education",
     "express",
-    "mongodb",
-    "vercel",
-    "serverless"
+    "mongodb"
   ],
   "author": "LMS Team",
   "license": "MIT",
@@ -34,6 +30,6 @@
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=14.0.0"
   }
 }
