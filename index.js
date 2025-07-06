@@ -79,9 +79,44 @@ app.get('/api/v1/health', (req, res) => {
     });
 });
 
+// Test route to trigger 500 error (for testing purposes)
+app.get('/test-500', (req, res, next) => {
+    const error = new Error('Test 500 error');
+    error.status = 500;
+    next(error);
+});
+
+// Error handling middleware for 500-series errors
+app.use((err, req, res, next) => {
+    // Check if the error is a 500-series error
+    if (err.status >= 500 && err.status < 600) {
+        return res.status(err.status).sendFile(path.join(__dirname, 'error-500.html'));
+    }
+    
+    // For other errors, pass to next middleware
+    next(err);
+});
+
+// Global error handler for uncaught 500 errors
+app.use((err, req, res, next) => {
+    console.error('Uncaught error:', err.stack);
+    res.status(500).sendFile(path.join(__dirname, 'error-500.html'));
+});
+
 // Handle 404 - serve index.html for any other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Handle uncaught exceptions and unhandled promise rejections
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    // Don't exit the process, let the error middleware handle it
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process, let the error middleware handle it
 });
 
 app.listen(PORT, () => {
